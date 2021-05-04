@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 
 class AdminController extends Controller
 {
@@ -105,6 +106,38 @@ class AdminController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    //photo upload form
+    public function uploadPhotoForm()
+    {
+        $admin = auth('admin')->user();
+        return view('Admin.upload-avatar', compact('admin'));
+    }
+
+    //photo upload
+    public function uploadPhoto(Request $request)
+    {
+        $request->validate([
+            'image'=>'required|file|mimes:jpeg,jpg,png|max:2024'
+        ]);
+
+        $admin = auth('admin')->user();
+        $oldPhoto = $admin->getOriginal('profile_photo_path');
+
+        if ($request->file('image'))
+        {
+            if (File::exists($oldPhoto))
+            {
+                File::delete($oldPhoto);
+            }
+
+            $path = $request->file('image')->store('ProfilePhotos','public');
+            $admin->profile_photo_path = 'storage/'.$path;
+        }
+        $admin->save();
+
+        return redirect()->route('admin.profile');
     }
 
 }

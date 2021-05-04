@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\User;
+use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -56,5 +58,44 @@ class UserController extends Controller
             return back();
         }
     }
+
+
+    //photo upload form
+    public function uploadPhotoForm(User $user)
+    {
+        $user = User::find($user->id);
+        return view('upload-avatar', compact('user'));
+    }
+
+    //photo upload
+    public function uploadPhoto(Request $request)
+    {
+        $request->validate([
+            'image'=>'required|file|mimes:jpeg,jpg,png|max:2024'
+        ]);
+
+        $user = auth()->user();
+        $oldPhoto = $user->getOriginal('profile_photo_path');
+
+        if ($request->file('image'))
+        {
+            if (File::exists($oldPhoto))
+            {
+                File::delete($oldPhoto);
+            }
+
+            $path = $request->file('image')->store('ProfilePhotos','public');
+            $user->profile_photo_path = 'storage/'.$path;
+        }
+        $user->save();
+
+        if ($user->is_manager) {
+            return redirect()->route('manager.profile');
+        }
+
+        
+        return redirect()->route('user.profile');
+    }
+
 }
 
